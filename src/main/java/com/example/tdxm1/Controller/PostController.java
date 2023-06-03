@@ -1,21 +1,17 @@
 package com.example.tdxm1.Controller;
 
 import com.alibaba.fastjson.JSONObject;
-import com.example.tdxm1.Enity.CommentBean;
-import com.example.tdxm1.Enity.PostBean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.lang.String;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+
+import static org.apache.logging.log4j.message.MapMessage.MapFormat.JSON;
 
 public class PostController {
 
@@ -39,16 +35,16 @@ public class PostController {
         return json;
     }
 
-    public JSONObject createComment(@RequestParam JSONObject frontJson){
+    public JSONObject createComment(@RequestBody Map<String,String> requestBody){
         JSONObject json=new JSONObject();
 
         SQLController sqlController=new SQLController();
         Connection connection=sqlController.ConnectToSql("jdbc:mysql://localhost:3306/jinan","root","1234"+"");
 
         if(connection!=null){
-            int postid=frontJson.getInteger("postid");
-            int wxid=frontJson.getInteger("wxid");
-            String content= frontJson.getString("content");
+            int postid=Integer.parseInt(requestBody.get("postid"));
+            int wxid=Integer.parseInt(requestBody.get("wxid"));
+            String content= requestBody.get("content");
 
             try {
                 String sql1 = "select count(*) from `post` where postid=" + postid + "limit 1";
@@ -76,9 +72,9 @@ public class PostController {
                     List<String> oldCommentsList=new ArrayList<>();
                     while (rs2.next()){
                         postOldComments=rs2.getString("comments");
-                        oldCommentsList=Arrays.asList(postOldComments.split("_"));
+                        oldCommentsList=Arrays.asList(postOldComments.split(" "));
                         //给该帖子插入一条评论，commentid,poster,content
-                        postNewComments=postOldComments+"{commentid:"+oldCommentsList.size()+"poster:"+wxid+"content:"+content+"}_";
+                        postNewComments=postOldComments+"{commentid:"+oldCommentsList.size()+"poster:"+wxid+"content:"+content+"} ";
                     }
                     String sql3="update `post` set comments="+postNewComments+"where postid="+postid;
                     Statement stmt3 = connection.createStatement();
@@ -90,8 +86,8 @@ public class PostController {
                     ResultSet rs4=stmt4.executeQuery(sql4);
                     while (rs4.next()){
                         userOldComments=rs4.getString("comments");
-                        oldCommentsList=Arrays.asList(postOldComments.split("_"));
-                        userNewComments=userOldComments+"{postid:"+postid+"commentid:"+oldCommentsList.size()+"}_";
+                        oldCommentsList=Arrays.asList(postOldComments.split(" "));
+                        userNewComments=userOldComments+"{postid:"+postid+"commentid:"+oldCommentsList.size()+"} ";
                     }
                     String sql5="update `user` set comments="+userNewComments+"where wxid="+wxid;
                     Statement stmt5 = connection.createStatement();
@@ -108,15 +104,15 @@ public class PostController {
         return json;
     }
 
-    public JSONObject createVote(@RequestParam JSONObject frontJson){
+    public JSONObject createVote(@RequestBody Map<String,String> requestBody){
         JSONObject json=new JSONObject();
         SQLController sqlController=new SQLController();
         Connection connection=sqlController.ConnectToSql("jdbc:mysql://localhost:3306/jinan","root","1234"+"");
 
         if(connection!=null){
-            int postid=frontJson.getInteger("postid");
-            int wxid=frontJson.getInteger("wxid");
-            int vote=frontJson.getInteger("vote");
+            int postid=Integer.parseInt(requestBody.get("postid"));
+            int wxid=Integer.parseInt(requestBody.get("wxid"));
+            int vote=Integer.getInteger(requestBody.get("vote"));
 
             try {
                 String sql1 = "select count(*) from `post` where postid=" + postid + "limit 1";
@@ -160,7 +156,7 @@ public class PostController {
                     String userNewVotes=null;
                     while (rs4.next()){
                         userOldVotes=rs4.getString("votes");
-                        userNewVotes=userOldVotes+"{postid:"+postid+",vote:"+vote+"}_";
+                        userNewVotes=userOldVotes+"{postid:"+postid+",vote:"+vote+"} ";
                     }
                     String sql5="update `user` set votes="+userNewVotes+"where wxid="+wxid;
                     Statement stmt5 = connection.createStatement();
